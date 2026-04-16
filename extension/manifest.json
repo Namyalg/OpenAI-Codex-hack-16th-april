@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Learn Hands On",
+  "version": "1.0.0",
+  "description": "Generate interactive hands-on labs from YouTube videos",
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://youtube.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Learn Hands On"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

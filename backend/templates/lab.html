@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      background: #000;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      padding: 16px 20px;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .learning-plan {
+      width: 280px;
+      border: 1px solid #333;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+
+    .learning-plan-header {
+      background: #1a1a1a;
+      padding: 12px;
+      border-bottom: 1px solid #333;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .learning-plan-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .learning-step {
+      margin-bottom: 12px;
+      padding: 8px;
+      border-left: 2px solid #333;
+      padding-left: 10px;
+    }
+
+    .learning-step.active {
+      border-left-color: #fff;
+      background: #1a1a1a;
+    }
+
+    .learning-step-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #fff;
+    }
+
+    .learning-step-desc {
+      color: #aaa;
+      font-size: 10px;
+    }
+
+    .terminal {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #333;
+      border-radius: 4px;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+
+    .terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      border-bottom: 1px solid #333;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .terminal-output.empty {
+      color: #555;
+    }
+
+    .output-line {
+      margin: 2px 0;
+    }
+
+    .command-prefix {
+      color: #888;
+      margin-right: 4px;
+    }
+
+    .success {
+      color: #0f0;
+    }
+
+    .error {
+      color: #f00;
+    }
+
+    .terminal-input {
+      display: flex;
+      border-top: 1px solid #333;
+      padding: 8px;
+      gap: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 6px 8px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #666;
+    }
+
+    button {
+      background: #fff;
+      color: #000;
+      border: 1px solid #fff;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    button:hover {
+      background: #ddd;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .qa-section {
+      margin-top: 12px;
+      padding: 12px;
+      border-top: 1px solid #333;
+    }
+
+    .qa-input {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .qa-input input {
+      flex: 1;
+    }
+
+    .qa-history {
+      max-height: 100px;
+      overflow-y: auto;
+      font-size: 10px;
+    }
+
+    .qa-item {
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #333;
+    }
+
+    .qa-question {
+      color: #aaa;
+      margin-bottom: 2px;
+    }
+
+    .qa-answer {
+      color: #888;
+      font-size: 9px;
+    }
+
+    .loading {
+      color: #666;
+      font-style: italic;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border: 1px solid #666;
+      border-top: 1px solid transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 4px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Lab: <span id="labId"></span></h1>
+    <p id="contextInfo"></p>
+  </div>
+
+  <div class="container">
+    <div class="learning-plan">
+      <div class="learning-plan-header">Learning Plan</div>
+      <div class="learning-plan-content" id="learningPlan">
+        <div class="loading"><span class="spinner"></span>Generating plan...</div>
+      </div>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-output empty" id="terminalOutput">
+        <div class="loading"><span class="spinner"></span>Initializing environment...</div>
+      </div>
+
+      <div class="terminal-input">
+        <input type="text" id="commandInput" placeholder="$ " autocomplete="off">
+        <button id="executeBtn">Execute</button>
+      </div>
+
+      <div class="qa-section">
+        <div class="qa-input">
+          <input type="text" id="questionInput" placeholder="Ask a question...">
+          <button id="askBtn">Ask</button>
+        </div>
+        <div class="qa-history" id="qaHistory"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LAB_ID = new URLSearchParams(window.location.search).get('lab');
+    let learningPlan = null;
+    let conversationHistory = [];
+
+    document.getElementById('labId').textContent = LAB_ID ? LAB_ID.substring(0, 12) : 'Unknown';
+
+    // Initialize
+    async function init() {
+      try {
+        const response = await fetch(`/api/lab/${LAB_ID}`);
+        if (!response.ok) throw new Error('Failed to fetch lab data');
+
+        const data = await response.json();
+        learningPlan = data.learning_plan;
+
+        document.getElementById('contextInfo').textContent = data.project_context || 'No context provided';
+        displayLearningPlan(learningPlan);
+        appendOutput('Lab environment initialized. Type a command or ask a question.');
+      } catch (error) {
+        appendOutput(`Error initializing lab: ${error.message}`, 'error');
+      }
+    }
+
+    function displayLearningPlan(plan) {
+      const container = document.getElementById('learningPlan');
+      if (!plan) {
+        container.innerHTML = '<div class="learning-step-desc">No plan available</div>';
+        return;
+      }
+
+      const html = plan.split('\n')
+        .filter(line => line.trim())
+        .map((line, i) => {
+          const isNumber = /^\d+\./.test(line);
+          return `
+            <div class="learning-step ${i === 0 ? 'active' : ''}">
+              <div class="learning-step-title">${line.substring(0, 40)}${line.length > 40 ? '...' : ''}</div>
+            </div>
+          `;
+        })
+        .join('');
+
+      container.innerHTML = html;
+    }
+
+    function appendOutput(text, type = 'normal') {
+      const output = document.getElementById('terminalOutput');
+
+      if (output.classList.contains('empty')) {
+        output.classList.remove('empty');
+        output.innerHTML = '';
+      }
+
+      const line = document.createElement('div');
+      line.className = 'output-line';
+
+      if (type === 'command') {
+        line.innerHTML = `<span class="command-prefix">$</span>${escapeHtml(text)}`;
+      } else if (type === 'error') {
+        line.innerHTML = `<span class="error">${escapeHtml(text)}</span>`;
+      } else if (type === 'success') {
+        line.innerHTML = `<span class="success">${escapeHtml(text)}</span>`;
+      } else {
+        line.textContent = text;
+      }
+
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('executeBtn').addEventListener('click', async () => {
+      const input = document.getElementById('commandInput');
+      const command = input.value.trim();
+
+      if (!command) return;
+
+      appendOutput(command, 'command');
+      input.value = '';
+
+      document.getElementById('executeBtn').disabled = true;
+      document.getElementById('commandInput').disabled = true;
+
+      try {
+        const response = await fetch(`/api/lab/${LAB_ID}/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command })
+        });
+
+        const data = await response.json();
+
+        if (data.output) {
+          data.output.split('\n').forEach(line => {
+            if (line.trim()) appendOutput(line);
+          });
+        }
+
+        if (data.error) {
+          appendOutput(`Error: ${data.error}`, 'error');
+        }
+      } catch (error) {
+        appendOutput(`Execution error: ${error.message}`, 'error');
+      } finally {
+        document.getElementById('executeBtn').disabled = false;
+        document.getElementById('commandInput').disabled = false;
+        document.getElementById('commandInput').focus();
+      }
+    });
+
+    document.getElementById('commandInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('executeBtn').click();
+      }
+    });
+
+    document.getElementById('askBtn').addEventListener('click', async () => {
+      const input = document.getElementById('questionInput');
+      const question = input.value.trim();
+
+      if (!question) return;
+
+      const history = document.getElementById('qaHistory');
+      const item = document.createElement('div');
+      item.className = 'qa-item';
+      item.innerHTML = `<div class="qa-question">Q: ${escapeHtml(question)}</div><div class="qa-answer"><span class="spinner"></span>Thinking...</div>`;
+      history.appendChild(item);
+      history.scrollTop = history.scrollHeight;
+
+      input.value = '';
+      document.getElementById('askBtn').disabled = true;
+
+      try {
+        const response = await fetch(`/api/lab/${LAB_ID}/ask`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+
+        item.innerHTML = `
+          <div class="qa-question">Q: ${escapeHtml(question)}</div>
+          <div class="qa-answer">A: ${escapeHtml(data.answer || data.error || 'No response')}</div>
+        `;
+
+        // Update learning plan if provided
+        if (data.updated_plan) {
+          learningPlan = data.updated_plan;
+          displayLearningPlan(learningPlan);
+        }
+      } catch (error) {
+        item.innerHTML = `
+          <div class="qa-question">Q: ${escapeHtml(question)}</div>
+          <div class="qa-answer error">Error: ${escapeHtml(error.message)}</div>
+        `;
+      } finally {
+        document.getElementById('askBtn').disabled = false;
+        document.getElementById('questionInput').focus();
+      }
+    });
+
+    document.getElementById('questionInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('askBtn').click();
+      }
+    });
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>
