@@ -1,8 +1,19 @@
-# Learn Hands On 🎓
+# Learn Hands On
 
 Transform YouTube tutorials into interactive, hands-on learning labs. Automatically extract transcripts, generate AI-powered summaries, create personalized Docker environments, and learn by doing.
 
-## 🎯 Overview
+## Demo
+
+Watch a demonstration of Learn Hands On in action:
+
+<video width="100%" controls>
+  <source src="assets/demonstrations.mp4" type="video/mp4">
+  Your browser does not support the video tag. Download the video: [demonstrations.mp4](assets/demonstrations.mp4)
+</video>
+
+---
+
+## Overview
 
 **Learn Hands On** is an AI-powered educational platform that bridges the gap between passive video watching and active learning. Simply click on any YouTube video, and the system instantly creates a customized Docker environment with all the tools you need to follow along with the tutorial hands-on.
 
@@ -17,7 +28,7 @@ Transform YouTube tutorials into interactive, hands-on learning labs. Automatica
 
 ---
 
-## 📋 Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -115,7 +126,7 @@ Transform YouTube tutorials into interactive, hands-on learning labs. Automatica
 
 ---
 
-## 📦 Prerequisites
+## Prerequisites
 
 ### System Requirements
 
@@ -145,7 +156,7 @@ Transform YouTube tutorials into interactive, hands-on learning labs. Automatica
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Backend Setup
 
@@ -211,7 +222,7 @@ Server runs on `http://localhost:3000` with auto-reload enabled.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
@@ -254,9 +265,9 @@ Server runs on `http://localhost:3000` with auto-reload enabled.
 
 ---
 
-## 🔐 Security & Best Practices
+## Security & Best Practices
 
-### ✅ Security Measures Implemented
+### Security Measures Implemented
 
 1. **Input Validation**
    - All API endpoints validate request body and input sizes
@@ -286,7 +297,7 @@ Server runs on `http://localhost:3000` with auto-reload enabled.
    - Detailed logs only in server console
    - No stack traces in API responses
 
-### ⚠️ Important Notes
+### Important Notes
 
 1. **Docker Permissions**
    - Application requires Docker daemon access
@@ -311,7 +322,7 @@ Server runs on `http://localhost:3000` with auto-reload enabled.
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables (.env.local)
 
@@ -347,7 +358,7 @@ timeout=300  # Docker build timeout in seconds (5 minutes)
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "Docker command not found"
 ```bash
@@ -390,7 +401,7 @@ cat backend/.env.local
 
 ---
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Lab Creation (3-Step Process)
 
@@ -431,7 +442,7 @@ cat backend/.env.local
 
 ---
 
-## 🧪 Development
+## Development
 
 ### Running Tests
 
@@ -475,7 +486,7 @@ Currently no automated tests. To add:
 
 ---
 
-## 📧 Support
+## Support
 
 For issues, feature requests, or questions:
 - Check GitHub issues
@@ -485,4 +496,4 @@ For issues, feature requests, or questions:
 
 ---
 
-**Made with ❤️ for learners who learn by doing.**
+**Made for learners who learn by doing.**
