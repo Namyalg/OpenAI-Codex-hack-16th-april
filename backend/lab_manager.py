@@ -8,12 +8,13 @@ ACTIVE_LABS = {}
 
 
 class LabSession:
-    def __init__(self, lab_id, transcript, project_context, container_id, dockerfile):
+    def __init__(self, lab_id, transcript, project_context, container_id, dockerfile, video_id=None):
         self.lab_id = lab_id
         self.transcript = transcript
         self.project_context = project_context
         self.container_id = container_id
         self.dockerfile = dockerfile
+        self.video_id = video_id
         self.learning_plan = None
         self.conversation_history = []
         self.executed_commands = []
@@ -26,12 +27,13 @@ class LabSession:
             'learning_plan': self.learning_plan,
             'conversation_history': self.conversation_history,
             'executed_commands': self.executed_commands,
+            'video_id': self.video_id,
         }
 
 
-def create_lab(lab_id, transcript, project_context, container_id, dockerfile):
+def create_lab(lab_id, transcript, project_context, container_id, dockerfile, video_id=None):
     """Create a new lab session"""
-    ACTIVE_LABS[lab_id] = LabSession(lab_id, transcript, project_context, container_id, dockerfile)
+    ACTIVE_LABS[lab_id] = LabSession(lab_id, transcript, project_context, container_id, dockerfile, video_id)
     return ACTIVE_LABS[lab_id]
 
 

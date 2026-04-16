@@ -23,32 +23,45 @@
     .header {
       background: #1a1a1a;
       border-bottom: 1px solid #333;
-      padding: 16px 20px;
+      padding: 12px 20px;
     }
 
     .header h1 {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .header p {
       font-size: 12px;
-      color: #888;
+      font-weight: 600;
     }
 
-    .container {
+    .main-container {
       display: flex;
       flex: 1;
       overflow: hidden;
-      gap: 20px;
-      padding: 20px;
+      gap: 0;
+    }
+
+    .left-panel {
+      width: 400px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #333;
+      overflow: hidden;
+    }
+
+    .video-container {
+      width: 100%;
+      padding: 12px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #333;
+    }
+
+    .video-container iframe {
+      width: 100%;
+      height: 200px;
+      border: 1px solid #333;
+      background: #000;
     }
 
     .learning-plan {
-      width: 280px;
-      border: 1px solid #333;
-      border-radius: 4px;
+      flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -59,60 +72,137 @@
       background: #1a1a1a;
       padding: 12px;
       border-bottom: 1px solid #333;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
+      color: #aaa;
     }
 
     .learning-plan-content {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
-      font-size: 11px;
-      line-height: 1.5;
+      padding: 0;
     }
 
     .learning-step {
-      margin-bottom: 12px;
-      padding: 8px;
-      border-left: 2px solid #333;
-      padding-left: 10px;
+      border-bottom: 1px solid #333;
+      padding: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
     }
 
-    .learning-step.active {
-      border-left-color: #fff;
+    .learning-step:hover {
       background: #1a1a1a;
     }
 
-    .learning-step-title {
+    .learning-step.completed {
+      background: #0a2a0a;
+      border-left: 3px solid #0f0;
+      padding-left: 9px;
+    }
+
+    .learning-step.active {
+      background: #1a1a1a;
+      border-left: 3px solid #fff;
+      padding-left: 9px;
+    }
+
+    .step-number {
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .learning-step.completed .step-number {
+      color: #0f0;
+    }
+
+    .step-title {
       font-weight: 600;
       margin-bottom: 4px;
       color: #fff;
+      font-size: 11px;
     }
 
-    .learning-step-desc {
-      color: #aaa;
+    .step-description {
       font-size: 10px;
+      color: #aaa;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      display: none;
     }
 
-    .terminal {
+    .learning-step.expanded .step-description {
+      display: block;
+    }
+
+    .step-command {
+      background: #1a1a1a;
+      padding: 6px 8px;
+      border-left: 2px solid #555;
+      font-size: 10px;
+      color: #0f0;
+      margin-top: 6px;
+      border-radius: 2px;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      display: none;
+      overflow-x: auto;
+    }
+
+    .learning-step.expanded .step-command {
+      display: block;
+    }
+
+    .step-status {
+      font-size: 10px;
+      color: #555;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .learning-step.completed .step-status {
+      color: #0f0;
+    }
+
+    .terminal-section {
       flex: 1;
       display: flex;
       flex-direction: column;
-      border: 1px solid #333;
-      border-radius: 4px;
-      background: #0a0a0a;
       overflow: hidden;
+    }
+
+    .environment-setup {
+      background: #0a1a0a;
+      border-bottom: 1px solid #333;
+      padding: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      border-left: 3px solid #0f0;
+    }
+
+    .environment-setup-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0f0;
+      margin-bottom: 6px;
+    }
+
+    .environment-setup-content {
+      font-size: 10px;
+      color: #aaa;
+      line-height: 1.5;
     }
 
     .terminal-output {
       flex: 1;
       overflow-y: auto;
       padding: 12px;
-      font-size: 12px;
+      font-size: 11px;
       line-height: 1.4;
       border-bottom: 1px solid #333;
       white-space: pre-wrap;
       word-wrap: break-word;
+      background: #0a0a0a;
     }
 
     .terminal-output.empty {
@@ -141,6 +231,7 @@
       border-top: 1px solid #333;
       padding: 8px;
       gap: 8px;
+      background: #0a0a0a;
     }
 
     input[type="text"] {
@@ -150,7 +241,7 @@
       color: #fff;
       padding: 6px 8px;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     input[type="text"]:focus {
@@ -167,6 +258,7 @@
       font-weight: 600;
       cursor: pointer;
       border-radius: 2px;
+      white-space: nowrap;
     }
 
     button:hover {
@@ -178,10 +270,18 @@
       cursor: not-allowed;
     }
 
+    #askBtn {
+      min-width: 60px;
+    }
+
     .qa-section {
-      margin-top: 12px;
       padding: 12px;
       border-top: 1px solid #333;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      max-height: 220px;
+      overflow: hidden;
     }
 
     .qa-input {
@@ -192,10 +292,18 @@
 
     .qa-input input {
       flex: 1;
+      font-size: 11px;
+    }
+
+    .qa-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: #aaa;
+      margin-bottom: 8px;
     }
 
     .qa-history {
-      max-height: 100px;
+      flex: 1;
       overflow-y: auto;
       font-size: 10px;
     }
@@ -213,7 +321,7 @@
 
     .qa-answer {
       color: #888;
-      font-size: 9px;
+      font-size: 8px;
     }
 
     .loading {
@@ -256,19 +364,34 @@
 </head>
 <body>
   <div class="header">
-    <h1>Lab: <span id="labId"></span></h1>
-    <p id="contextInfo"></p>
+    <h1>Lab: <span id="labId"></span> — Follow the steps to learn hands-on</h1>
   </div>
 
-  <div class="container">
-    <div class="learning-plan">
-      <div class="learning-plan-header">Learning Plan</div>
-      <div class="learning-plan-content" id="learningPlan">
-        <div class="loading"><span class="spinner"></span>Generating plan...</div>
+  <div class="main-container">
+    <div class="left-panel">
+      <div class="video-container">
+        <iframe id="videoEmbed" allowfullscreen="" style="display: none;"></iframe>
+        <div id="videoPlaceholder" style="width: 100%; height: 200px; background: #1a1a1a; border: 1px solid #333; display: flex; align-items: center; justify-content: center; color: #555; font-size: 12px;">No video</div>
+      </div>
+
+      <div class="learning-plan">
+        <div class="learning-plan-header">📋 Learning Steps</div>
+        <div class="learning-plan-content" id="learningPlan">
+          <div class="learning-step">
+            <div class="loading"><span class="spinner"></span>Generating plan...</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="terminal">
+    <div class="terminal-section">
+      <div class="environment-setup">
+        <div class="environment-setup-title">🔧 Environment Setup</div>
+        <div class="environment-setup-content" id="environmentSetup">
+          <div class="loading"><span class="spinner"></span>Loading environment info...</div>
+        </div>
+      </div>
+
       <div class="terminal-output empty" id="terminalOutput">
         <div class="loading"><span class="spinner"></span>Initializing environment...</div>
       </div>
@@ -279,6 +402,7 @@
       </div>
 
       <div class="qa-section">
+        <div class="qa-header">💬 Q&A - Ask to understand better</div>
         <div class="qa-input">
           <input type="text" id="questionInput" placeholder="Ask a question...">
           <button id="askBtn">Ask</button>
@@ -291,7 +415,9 @@
   <script>
     const LAB_ID = new URLSearchParams(window.location.search).get('lab');
     let learningPlan = null;
-    let conversationHistory = [];
+    let parsedSteps = [];
+    let completedSteps = new Set();
+    let currentStepIndex = 0;
 
     document.getElementById('labId').textContent = LAB_ID ? LAB_ID.substring(0, 12) : 'Unknown';
 
@@ -304,35 +430,112 @@
         const data = await response.json();
         learningPlan = data.learning_plan;
 
-        document.getElementById('contextInfo').textContent = data.project_context || 'No context provided';
+        // Display environment setup info
+        displayEnvironmentSetup(data);
+
+        // Embed YouTube video if video_id is provided
+        if (data.video_id) {
+          const videoEmbed = document.getElementById('videoEmbed');
+          const videoPlaceholder = document.getElementById('videoPlaceholder');
+          videoEmbed.src = `https://www.youtube.com/embed/${data.video_id}`;
+          videoEmbed.style.display = 'block';
+          videoPlaceholder.style.display = 'none';
+        }
+
         displayLearningPlan(learningPlan);
-        appendOutput('Lab environment initialized. Type a command or ask a question.');
+        appendOutput('Lab environment initialized. Follow the steps on the left or type a command below.');
       } catch (error) {
         appendOutput(`Error initializing lab: ${error.message}`, 'error');
       }
     }
 
+    function displayEnvironmentSetup(data) {
+      const setupEl = document.getElementById('environmentSetup');
+      const description = data.environment_description || 'Environment configured and ready.';
+
+      setupEl.innerHTML = `
+        <div style="color: #fff; font-size: 10px; line-height: 1.6;">
+          ${escapeHtml(description).replace(/\n/g, '<br>')}
+        </div>
+      `;
+    }
+
+    function parseStep(stepText) {
+      // Parse a single step from text format
+      const titleMatch = stepText.match(/\*\*(.+?)\*\*:\s*(.*)/);
+      if (!titleMatch) return null;
+
+      const title = titleMatch[1];
+      let description = titleMatch[2];
+      let command = null;
+
+      // Extract command from backticks
+      const cmdMatch = stepText.match(/`([^`]+)`/);
+      if (cmdMatch) {
+        command = cmdMatch[1];
+      }
+
+      return { title, description, command };
+    }
+
+    function addStepToDisplay(stepText, stepIndex) {
+      const container = document.getElementById('learningPlan');
+      const step = parseStep(stepText);
+
+      if (!step) return;
+
+      // Mark previous step as complete if exists
+      if (stepIndex > 0) {
+        const prevSteps = document.querySelectorAll('.learning-step');
+        if (prevSteps.length > 0) {
+          prevSteps[prevSteps.length - 1].classList.remove('active', 'expanded');
+          prevSteps[prevSteps.length - 1].classList.add('completed');
+          const statusEl = prevSteps[prevSteps.length - 1].querySelector('.step-status');
+          if (statusEl) statusEl.textContent = '✓ Complete';
+        }
+      }
+
+      // Create new step element
+      const stepEl = document.createElement('div');
+      stepEl.className = 'learning-step active expanded';
+      stepEl.innerHTML = `
+        <div class="step-number">Step ${stepIndex + 1}</div>
+        <div class="step-title">${escapeHtml(step.title)}</div>
+        <div class="step-description">${escapeHtml(step.description)}</div>
+        ${step.command ? `<div class="step-command">$ ${escapeHtml(step.command)}</div>` : ''}
+        <div class="step-status">→ Your turn</div>
+      `;
+
+      container.appendChild(stepEl);
+      stepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      currentStepIndex++;
+    }
+
     function displayLearningPlan(plan) {
       const container = document.getElementById('learningPlan');
       if (!plan) {
-        container.innerHTML = '<div class="learning-step-desc">No plan available</div>';
+        container.innerHTML = '<div class="learning-step"><div class="learning-step-desc">No plan available</div></div>';
         return;
       }
 
-      const html = plan.split('\n')
-        .filter(line => line.trim())
-        .map((line, i) => {
-          const isNumber = /^\d+\./.test(line);
-          return `
-            <div class="learning-step ${i === 0 ? 'active' : ''}">
-              <div class="learning-step-title">${line.substring(0, 40)}${line.length > 40 ? '...' : ''}</div>
-            </div>
-          `;
-        })
-        .join('');
+      // Parse and display initial step only
+      const step = parseStep(plan);
+      if (!step) return;
 
-      container.innerHTML = html;
+      container.innerHTML = `
+        <div class="learning-step active expanded">
+          <div class="step-number">Step 1</div>
+          <div class="step-title">${escapeHtml(step.title)}</div>
+          <div class="step-description">${escapeHtml(step.description)}</div>
+          ${step.command ? `<div class="step-command">$ ${escapeHtml(step.command)}</div>` : ''}
+          <div class="step-status">→ Your turn</div>
+        </div>
+      `;
+
+      currentStepIndex = 1;
     }
+
 
     function appendOutput(text, type = 'normal') {
       const output = document.getElementById('terminalOutput');
@@ -394,6 +597,17 @@
 
         if (data.error) {
           appendOutput(`Error: ${data.error}`, 'error');
+        } else {
+          appendOutput('✓ Command executed', 'success');
+        }
+
+        // If we got a next step from the AI, display it dynamically
+        if (data.next_step) {
+          appendOutput('', 'normal'); // blank line
+          appendOutput('📝 Next step coming up...', 'success');
+          setTimeout(() => {
+            addStepToDisplay(data.next_step, currentStepIndex);
+          }, 500);
         }
       } catch (error) {
         appendOutput(`Execution error: ${error.message}`, 'error');
@@ -439,12 +653,6 @@
           <div class="qa-question">Q: ${escapeHtml(question)}</div>
           <div class="qa-answer">A: ${escapeHtml(data.answer || data.error || 'No response')}</div>
         `;
-
-        // Update learning plan if provided
-        if (data.updated_plan) {
-          learningPlan = data.updated_plan;
-          displayLearningPlan(learningPlan);
-        }
       } catch (error) {
         item.innerHTML = `
           <div class="qa-question">Q: ${escapeHtml(question)}</div>

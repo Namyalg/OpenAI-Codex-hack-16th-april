@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Learn Hands On",
+  "name": "you are ngmi if not hands on",
   "version": "1.0.0",
-  "description": "Generate interactive hands-on labs from YouTube videos",
+  "description": "Go hands on with YouTube videos - build interactive labs instantly",
   "permissions": [
     "tabs",
     "scripting"
@@ -13,7 +13,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Learn Hands On"
+    "default_title": "you are ngmi if not hands on"
   },
   "background": {
     "service_worker": "background.js"

@@ -10,8 +10,9 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import tempfile
-import uuid
+import secrets
 from lab_manager import create_lab, get_lab, update_lab_plan, add_conversation, add_executed_command
+from werkzeug.exceptions import BadRequest
 
 # Load environment variables from .env.local
 def load_env():
@@ -21,23 +22,35 @@ def load_env():
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    key, value = line.split('=', 1)
-                    os.environ[key] = value
+                    if '=' in line:
+                        key, value = line.split('=', 1)
+                        os.environ[key] = value
 
 load_env()
 
 app = Flask(__name__)
-CORS(app)
+# CORS configuration - only allow requests from extension origins
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["chrome-extension://*"],
+        "methods": ["POST", "GET", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
-# Initialize OpenAI client
+# Initialize OpenAI client with proper validation
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    print("ERROR: OPENAI_API_KEY environment variable not set")
+    print("Please set OPENAI_API_KEY in .env.local file")
+    exit(1)
+
 try:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY not set")
     client = OpenAI(api_key=api_key)
+    print("[Init] OpenAI API key loaded successfully")
 except Exception as e:
-    print(f"Warning: Could not initialize OpenAI client: {e}")
-    client = None
+    print(f"ERROR: Could not initialize OpenAI client: {e}")
+    exit(1)
 
 def extract_video_id(url):
     """Extract YouTube video ID from URL"""
@@ -370,7 +383,7 @@ INVALID PACKAGES (DO NOT USE):
 Generate ONLY the Dockerfile content, no additional text or explanation."""
 
         response = client.chat.completions.create(
-            model="gpt-5.4",
+            model="gpt-4o-mini",
             max_completion_tokens=1000,
             messages=[
                 {
@@ -419,11 +432,21 @@ def health():
 @app.route('/api/generate-lab', methods=['POST'])
 def generate_lab():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
     youtube_url = data.get('youtube_url')
     project_context = data.get('project_context', '')
 
     if not youtube_url:
         return jsonify({"error": "youtube_url is required"}), 400
+
+    # Validate input sizes to prevent DoS
+    if len(youtube_url) > 500:
+        return jsonify({"error": "youtube_url is too long"}), 400
+
+    if len(project_context) > 1000:
+        return jsonify({"error": "project_context is too long (max 1000 chars)"}), 400
 
     print(f"[API] Received YouTube URL: {youtube_url}")
     if project_context:
@@ -441,7 +464,8 @@ def generate_lab():
         # Summarize transcript
         summary = summarize_transcript(transcript)
 
-        lab_id = f"lab_{int(os.urandom(8).hex(), 16)}"
+        # Generate secure lab ID
+        lab_id = f"lab_{secrets.token_hex(8)}"
 
         return jsonify({
             "success": True,
@@ -462,12 +486,26 @@ def generate_lab():
 def start_lab():
     """Start a lab by generating a Dockerfile based on transcript and context"""
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
     lab_id = data.get('labId')
     transcript = data.get('transcript')
     project_context = data.get('project_context', '')
 
     if not lab_id or not transcript:
         return jsonify({"error": "labId and transcript are required"}), 400
+
+    # Validate lab_id format (should be lab_xxxxx)
+    if not lab_id.startswith('lab_') or len(lab_id) < 10:
+        return jsonify({"error": "Invalid lab_id format"}), 400
+
+    # Validate transcript size (max 100KB)
+    if len(transcript) > 102400:
+        return jsonify({"error": "transcript is too large (max 100KB)"}), 400
+
+    if len(project_context) > 1000:
+        return jsonify({"error": "project_context is too long (max 1000 chars)"}), 400
 
     print(f"\n[StartLab] Starting lab: {lab_id}")
     print(f"[StartLab] Project context: {project_context if project_context else 'None'}")
@@ -505,22 +543,39 @@ def start_lab():
 def build_lab():
     """Build Docker image and start container"""
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
     lab_id = data.get('labId')
     dockerfile = data.get('dockerfile')
     transcript = data.get('transcript', '')
     project_context = data.get('project_context', '')
+    youtube_url = data.get('youtube_url', '')
 
     if not lab_id or not dockerfile:
         return jsonify({"error": "labId and dockerfile are required"}), 400
 
+    # Validate lab_id format
+    if not lab_id.startswith('lab_') or len(lab_id) < 10:
+        return jsonify({"error": "Invalid lab_id format"}), 400
+
+    # Validate dockerfile size (max 50KB)
+    if len(dockerfile) > 51200:
+        return jsonify({"error": "dockerfile is too large (max 50KB)"}), 400
+
     print(f"\n[BuildLab] Building lab environment: {lab_id}")
 
     try:
+        # Extract video ID from URL
+        video_id = None
+        if youtube_url:
+            video_id = extract_video_id(youtube_url)
+
         # Build and run the lab
         result = build_and_run_lab(dockerfile, lab_id)
 
         # Create lab session and store container info
-        create_lab(lab_id, transcript, project_context, result["container_id"], dockerfile)
+        create_lab(lab_id, transcript, project_context, result["container_id"], dockerfile, video_id)
 
         return jsonify({
             "success": True,
@@ -543,72 +598,198 @@ def lab_page():
     return render_template('lab.html')
 
 
+def parse_environment_setup(dockerfile, transcript, project_context):
+    """Parse dockerfile and transcript to generate environment description"""
+    try:
+        print("[EnvSetup] Generating environment description...")
+
+        # Extract key info from dockerfile
+        lines = dockerfile.split('\n')
+        base_image = None
+        packages = []
+
+        for line in lines:
+            if 'FROM' in line:
+                base_image = line.replace('FROM', '').strip()
+            if 'apt-get install' in line or 'apt install' in line:
+                # Extract packages
+                if 'apt-get install' in line:
+                    pkg_str = line.split('apt-get install')[1]
+                else:
+                    pkg_str = line.split('apt install')[1]
+                pkg_str = pkg_str.replace('\\', ' ').replace('&&', ' ')
+                pkgs = [p.strip() for p in pkg_str.split() if p.strip() and not p.startswith('-')]
+                packages.extend(pkgs[:5])  # First 5 packages
+
+        # Generate description using AI
+        prompt = f"""Based on the tutorial and the environment setup below, write a SHORT 2-line description of what this learning environment provides.
+
+TUTORIAL TOPIC:
+{transcript[:500]}
+
+BASE IMAGE: {base_image or 'standard'}
+KEY PACKAGES: {', '.join(packages) if packages else 'standard tools'}
+
+Write EXACTLY 2 lines explaining:
+Line 1: What this environment is built on (base image + main purpose)
+Line 2: What tools/packages are included and why they matter for learning this tutorial
+
+Keep each line under 80 characters. Be concise and educational."""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_completion_tokens=100,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        description = response.choices[0].message.content
+        print(f"[EnvSetup] ✓ Environment description generated")
+        return description
+
+    except Exception as e:
+        print(f"[EnvSetup] Error generating description: {str(e)}")
+        # Fallback
+        base = base_image or "Linux"
+        pkgs = ", ".join(packages[:3]) if packages else "development tools"
+        return f"Environment: {base}\nIncludes: {pkgs} and other essential packages for hands-on learning."
+
+
 @app.route('/api/lab/<lab_id>', methods=['GET'])
 def get_lab_data(lab_id):
-    """Get lab data and generate learning plan if needed"""
+    """Get lab data and generate initial learning step"""
     lab = get_lab(lab_id)
 
     if not lab:
         return jsonify({"error": "Lab not found"}), 404
 
-    # Generate learning plan if not already generated
+    # Generate environment setup description
+    environment_description = parse_environment_setup(lab.dockerfile, lab.transcript, lab.project_context)
+
+    # Generate initial step if not already done
     if not lab.learning_plan:
         try:
-            print(f"[LearningPlan] Generating plan for lab {lab_id}...")
+            print(f"[LearningPlan] Generating initial step for lab {lab_id}...")
 
-            prompt = f"""Based on this tutorial transcript and project context, create a concise learning plan with 5-7 key steps the user should follow.
+            prompt = f"""Based on this tutorial, generate ONLY the first learning step to get started. Be specific and actionable.
 
-TUTORIAL TRANSCRIPT (summary):
+TUTORIAL CONTENT:
 {lab.transcript[:1500]}
 
-PROJECT CONTEXT:
-{lab.project_context if lab.project_context else 'General learning environment'}
+LEARNER'S CONTEXT:
+{lab.project_context if lab.project_context else 'General hands-on learning'}
 
-Create a numbered list of learning steps. Each step should be 1-2 lines, focusing on what the user should learn and practice. Be specific to what they'll find in the tutorial and project.
+Generate ONLY ONE step in this exact format:
 
-Format:
-1. First step
-2. Second step
-... etc
+**Step Title**: Brief explanation of why this is the first step and what they'll learn.
+`command to try`
 
-Do NOT include Docker setup steps - just the learning objectives."""
+Keep it short, clear, and actionable. This is just the starting point - more steps will be generated dynamically based on what they do."""
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                max_tokens=500,
+                max_completion_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )
 
             learning_plan = response.choices[0].message.content
             update_lab_plan(lab_id, learning_plan)
             lab.learning_plan = learning_plan
-            print(f"[LearningPlan] ✓ Plan generated for {lab_id}")
+            print(f"[LearningPlan] ✓ Initial step generated for {lab_id}")
 
         except Exception as e:
-            print(f"[LearningPlan] Error generating plan: {str(e)}")
-            lab.learning_plan = "Learning plan generation failed. Start with the environment setup and explore the installed tools."
+            print(f"[LearningPlan] Error generating initial step: {str(e)}")
+            lab.learning_plan = "**Explore Your Environment**: See what's available in the container.\n`ls -la`"
 
     return jsonify({
         "lab_id": lab_id,
         "project_context": lab.project_context,
         "learning_plan": lab.learning_plan,
-        "container_id": lab.container_id[:12] if lab.container_id else None,
+        "environment_description": environment_description,
+        "video_id": lab.video_id,
     }), 200
+
+
+def generate_next_step(lab_id, last_command, last_output):
+    """Generate the next learning step based on what the user just did"""
+    lab = get_lab(lab_id)
+    if not lab:
+        return None
+
+    try:
+        print(f"[NextStep] Generating next step for lab {lab_id}...")
+
+        # Build context of what they've done
+        executed_summary = "\n".join([
+            f"- Ran: {cmd['command']}\n  Output: {cmd['output'][:200]}..."
+            for cmd in lab.executed_commands[-3:]  # Last 3 commands
+        ])
+
+        prompt = f"""Based on what the learner just did, generate the NEXT best learning step.
+
+TUTORIAL CONTENT:
+{lab.transcript[:1500]}
+
+LEARNER'S CONTEXT:
+{lab.project_context if lab.project_context else 'General hands-on learning'}
+
+WHAT THEY JUST DID:
+Command: {last_command}
+Output:
+{last_output[:500]}
+
+THEIR EXPLORATION SO FAR:
+{executed_summary if executed_summary else 'Just getting started'}
+
+Based on what they learned from that last output, what should they explore or learn NEXT? Generate ONE practical next step that builds on what they just did.
+
+Format (replace TITLE and COMMAND with actual values):
+**TITLE**: Why this is the logical next step given their recent action. Keep it brief and actionable.
+`COMMAND`
+
+Examples:
+**Explore the filesystem**: Now that you see what's available, look deeper into the directory structure.
+`find . -type f -name "*.py" | head -10`
+
+**Test the setup**: Verify everything is working correctly.
+`python3 --version && git --version`
+
+Be adaptive - if they're exploring successfully, guide them deeper. If they hit an error, help them debug. Make each step flow naturally from the previous one."""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_completion_tokens=300,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        next_step = response.choices[0].message.content
+        print(f"[NextStep] ✓ Generated next step for {lab_id}")
+        return next_step
+
+    except Exception as e:
+        print(f"[NextStep] Error generating next step: {str(e)}")
+        return None
 
 
 @app.route('/api/lab/<lab_id>/execute', methods=['POST'])
 def execute_command(lab_id):
-    """Execute a command in the lab container"""
+    """Execute a command in the lab container and generate next step"""
     lab = get_lab(lab_id)
 
     if not lab:
         return jsonify({"error": "Lab not found"}), 404
 
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
     command = data.get('command', '').strip()
 
     if not command:
         return jsonify({"error": "Command required"}), 400
+
+    # Validate command size to prevent abuse
+    if len(command) > 4096:
+        return jsonify({"error": "Command is too long (max 4096 chars)"}), 400
 
     if not lab.container_id:
         return jsonify({"error": "Lab container not available"}), 400
@@ -632,11 +813,15 @@ def execute_command(lab_id):
         # Store executed command
         add_executed_command(lab_id, command, output)
 
+        # Generate next step based on this command's output
+        next_step = generate_next_step(lab_id, command, output)
+
         return jsonify({
             "success": True,
             "command": command,
             "output": output,
-            "exit_code": result.returncode
+            "exit_code": result.returncode,
+            "next_step": next_step
         }), 200
 
     except subprocess.TimeoutExpired:
@@ -655,10 +840,17 @@ def ask_question(lab_id):
         return jsonify({"error": "Lab not found"}), 404
 
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
     question = data.get('question', '').strip()
 
     if not question:
         return jsonify({"error": "Question required"}), 400
+
+    # Validate question size
+    if len(question) > 2000:
+        return jsonify({"error": "Question is too long (max 2000 chars)"}), 400
 
     print(f"[Ask] Question for {lab_id}: {question}")
 
